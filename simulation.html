@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Semantic Analyser - Simulation</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            min-height: 100vh;
+            color: #fff;
+        }
+        header {
+            background: linear-gradient(90deg, #1a1a2e, #16213e);
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 3px solid #e94560;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        header h1 { font-size: 28px; color: #e94560; text-transform: uppercase; letter-spacing: 2px; }
+        header .subtitle { font-size: 14px; color: #a5a5a5; }
+        .student-info { text-align: right; font-size: 14px; color: #ccc; }
+        .student-info span { color: #e94560; font-weight: bold; }
+        nav {
+            background: #16213e; padding: 12px 40px; display: flex; gap: 20px; border-bottom: 1px solid #333;
+        }
+        nav a {
+            color: #e94560; text-decoration: none; font-size: 15px; padding: 8px 20px;
+            border-radius: 5px; transition: all 0.3s ease; border: 1px solid transparent;
+        }
+        nav a:hover, nav a.active { background: #e94560; color: #fff; border-color: #e94560; }
+        .container { max-width: 1300px; margin: 30px auto; padding: 0 40px; }
+        .sim-title {
+            text-align: center; font-size: 36px; margin-bottom: 8px;
+            background: linear-gradient(90deg, #e94560, #ff6b6b);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .sim-desc { text-align: center; color: #888; margin-bottom: 30px; font-size: 16px; }
+        .tab-row { display: flex; justify-content: center; gap: 10px; margin-bottom: 25px; flex-wrap: wrap; }
+        .tab-btn {
+            padding: 10px 25px; border: 1px solid #444; background: #1a1a2e; color: #aaa;
+            border-radius: 8px 8px 0 0; cursor: pointer; font-size: 14px; font-weight: bold; transition: all 0.3s ease;
+        }
+        .tab-btn.active { background: #e94560; color: #fff; border-color: #e94560; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .editor-section { display: flex; gap: 25px; margin-bottom: 25px; }
+        .editor-panel, .output-panel {
+            flex: 1; background: #1a1a2e; border: 1px solid #333; border-radius: 12px; overflow: hidden;
+        }
+        .panel-header {
+            background: #16213e; padding: 12px 20px; font-size: 16px; font-weight: bold;
+            color: #e94560; border-bottom: 1px solid #333; display: flex;
+            justify-content: space-between; align-items: center;
+        }
+        .panel-header .badge { background: #e94560; color: #fff; padding: 3px 10px; border-radius: 12px; font-size: 12px; }
+        textarea {
+            width: 100%; height: 320px; background: #0f0f1a; color: #00ff88; border: none;
+            padding: 20px; font-family: 'Courier New', Courier, monospace; font-size: 14px;
+            line-height: 1.6; resize: none; outline: none;
+        }
+        textarea::placeholder { color: #555; }
+        .output-content {
+            overflow-y: auto; padding: 15px 20px; font-family: 'Courier New', Courier, monospace; font-size: 13px;
+        }
+        .output-content::-webkit-scrollbar { width: 8px; }
+        .output-content::-webkit-scrollbar-thumb { background: #e94560; border-radius: 4px; }
+        .output-content::-webkit-scrollbar-track { background: #0f0f1a; }
+        .btn-row { display: flex; justify-content: center; gap: 20px; margin-bottom: 30px; }
+        .btn {
+            padding: 14px 35px; border: none; border-radius: 50px; font-size: 16px; font-weight: bold;
+            cursor: pointer; text-transform: uppercase; letter-spacing: 1px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .btn-run { background: linear-gradient(90deg, #e94560, #c0392b); color: #fff; box-shadow: 0 5px 20px rgba(233,69,96,0.4); }
+        .btn-run:hover { transform: translateY(-3px); box-shadow: 0 8px 30px rgba(233,69,96,0.6); }
+        .btn-clear { background: linear-gradient(90deg, #333, #555); color: #fff; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .btn-clear:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0,0,0,0.5); }
+        .btn-sample { background: linear-gradient(90deg, #1abc9c, #16a085); color: #fff; box-shadow: 0 5px 15px rgba(26,188,156,0.3); }
+        .btn-sample:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(26,188,156,0.5); }
+        .stats-bar { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-bottom: 30px; }
+        .stat-item {
+            background: #1a1a2e; border: 1px solid #333; border-radius: 10px;
+            padding: 15px 25px; text-align: center; min-width: 140px;
+        }
+        .stat-item .stat-num { font-size: 28px; font-weight: bold; color: #e94560; }
+        .stat-item .stat-label { font-size: 12px; color: #888; text-transform: uppercase; margin-top: 5px; }
+        .sem-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .sem-table th, .sem-table td { border: 1px solid #333; padding: 8px 14px; text-align: center; font-size: 13px; }
+        .sem-table th { background: #e94560; color: #fff; font-size: 14px; }
+        .sem-table tr:nth-child(even) { background: #16213e; }
+        .sem-table tr:hover { background: rgba(233,69,96,0.12); }
+        .sem-table td { color: #ccc; }
+        .log-row { display: flex; padding: 6px 0; border-bottom: 1px solid #222; align-items: center; gap: 10px; }
+        .log-row:hover { background: rgba(233,69,96,0.08); }
+        .log-line { color: #666; width: 50px; font-size: 12px; }
+        .log-badge { padding: 2px 10px; border-radius: 4px; font-size: 11px; font-weight: bold; width: 90px; text-align: center; }
+        .log-msg { color: #eee; font-size: 13px; flex: 1; }
+        .badge-error { background: #e74c3c; color: #fff; }
+        .badge-warning { background: #f39c12; color: #fff; }
+        .badge-ok { background: #2ecc71; color: #fff; }
+        .badge-info { background: #3498db; color: #fff; }
+        .badge-coerce { background: #9b59b6; color: #fff; }
+        .status-pass { background: #2ecc71; color: #fff; padding: 4px 14px; border-radius: 6px; font-weight: bold; font-size: 14px; }
+        .status-fail { background: #e74c3c; color: #fff; padding: 4px 14px; border-radius: 6px; font-weight: bold; font-size: 14px; }
+        .status-warn { background: #f39c12; color: #fff; padding: 4px 14px; border-radius: 6px; font-weight: bold; font-size: 14px; }
+        footer {
+            text-align: center; padding: 25px; background: #1a1a2e;
+            border-top: 2px solid #e94560; color: #777; font-size: 14px; margin-top: 40px;
+        }
+        footer span { color: #e94560; }
+        @media (max-width: 768px) {
+            .editor-section { flex-direction: column; }
+            .btn-row { flex-direction: column; align-items: center; }
+            .stats-bar { gap: 10px; }
+            header { flex-direction: column; text-align: center; gap: 10px; }
+            .student-info { text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div>
+            <h1>Semantic Analyser</h1>
+            <div class="subtitle">Compiler Design - Virtual Lab | Simulation</div>
+        </div>
+        <div class="student-info">
+            <div>Created by: <span>Santhosh R K</span></div>
+            <div>Register No: <span>RA2311003050411</span></div>
+        </div>
+    </header>
+
+    <nav>
+        <a href="index.html">Home</a>
+        <a href="simulation.html" class="active">Simulation</a>
+    </nav>
+
+    <div class="container">
+        <h2 class="sim-title">Semantic Analyser Simulation</h2>
+        <p class="sim-desc">Enter C-like declarations and assignments below — the analyser will check types, scopes, and declarations</p>
+
+        <!-- Stats Bar -->
+        <div class="stats-bar">
+            <div class="stat-item"><div class="stat-num" id="statVars">0</div><div class="stat-label">Variables</div></div>
+            <div class="stat-item"><div class="stat-num" id="statLines">0</div><div class="stat-label">Statements</div></div>
+            <div class="stat-item"><div class="stat-num" id="statErrors">0</div><div class="stat-label">Errors</div></div>
+            <div class="stat-item"><div class="stat-num" id="statWarnings">0</div><div class="stat-label">Warnings</div></div>
+            <div class="stat-item"><div class="stat-num" id="statCoercions">0</div><div class="stat-label">Coercions</div></div>
+            <div class="stat-item"><div id="statResult" class="stat-num" style="font-size:16px;">—</div><div class="stat-label">Result</div></div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tab-row">
+            <div class="tab-btn active" onclick="switchTab('tabEditor', this)">📝 Editor</div>
+            <div class="tab-btn" onclick="switchTab('tabSymbol', this)">📋 Symbol Table</div>
+            <div class="tab-btn" onclick="switchTab('tabLog', this)">📊 Analysis Log</div>
+            <div class="tab-btn" onclick="switchTab('tabTypeCheck', this)">🔍 Type Checks</div>
+        </div>
+
+        <!-- Tab 1: Editor -->
+        <div class="tab-content active" id="tabEditor">
+            <div class="editor-section">
+                <div class="editor-panel">
+                    <div class="panel-header">
+                        <span>📝 Source Code</span>
+                        <span class="badge">INPUT</span>
+                    </div>
+                    <textarea id="sourceCode" placeholder="// Enter C-like code with declarations and assignments
+// Supported types: int, float, char, double
+// Example:
+// int a = 10;
+// float b = 3.14;
+// a = a + b;"></textarea>
+                </div>
+                <div class="output-panel">
+                    <div class="panel-header">
+                        <span>✅ Semantic Analysis Result</span>
+                        <span class="badge" id="resultBadge">OUTPUT</span>
+                    </div>
+                    <div class="output-content" id="resultOutput" style="height:320px;">
+                        <p style="color: #555; text-align: center; margin-top: 120px;">
+                            Click <strong style="color:#e94560;">"Analyse"</strong> to perform semantic analysis
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Symbol Table -->
+        <div class="tab-content" id="tabSymbol">
+            <div class="output-panel">
+                <div class="panel-header">
+                    <span>📋 Symbol Table</span>
+                    <span class="badge" id="symBadge">SYMBOL TABLE</span>
+                </div>
+                <div class="output-content" id="symbolOutput" style="height:400px;">
+                    <p style="color: #555; text-align: center; margin-top: 160px;">Analyse the code to build the Symbol Table</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 3: Analysis Log -->
+        <div class="tab-content" id="tabLog">
+            <div class="output-panel">
+                <div class="panel-header">
+                    <span>📊 Step-by-Step Analysis Log</span>
+                    <span class="badge" id="logBadge">LOG</span>
+                </div>
+                <div class="output-content" id="logOutput" style="height:400px;">
+                    <p style="color: #555; text-align: center; margin-top: 160px;">Analyse the code to see line-by-line semantic checks</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 4: Type Checks -->
+        <div class="tab-content" id="tabTypeCheck">
+            <div class="output-panel">
+                <div class="panel-header">
+                    <span>🔍 Type Checking Details</span>
+                    <span class="badge" id="typeBadge">TYPE CHECKS</span>
+                </div>
+                <div class="output-content" id="typeOutput" style="height:400px;">
+                    <p style="color: #555; text-align: center; margin-top: 160px;">Analyse the code to see type compatibility results</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="btn-row">
+            <button class="btn btn-sample" onclick="loadSample()">📄 Load Sample</button>
+            <button class="btn btn-run" onclick="analyse()">▶ Analyse</button>
+            <button class="btn btn-clear" onclick="clearAll()">🗑 Clear</button>
+        </div>
+    </div>
+
+    <footer>
+        <p>Semantic Analyser Virtual Lab | Created by <span>Santhosh R K</span> | Reg No: <span>RA2311003050411</span></p>
+        <p>&copy; 2025 Compiler Design Lab</p>
+    </footer>
+
+    <script>
+    /* ============================================================
+       TAB MANAGEMENT
+       ============================================================ */
+    function switchTab(tabId, el) {
+        document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
+        document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+        document.getElementById(tabId).classList.add('active');
+        el.classList.add('active');
+    }
+
+    /* ============================================================
+       TYPE SYSTEM
+       ============================================================ */
+    var TYPE_RANK = { 'char': 0, 'int': 1, 'float': 2, 'double': 3 };
+    var NUMERIC = ['int', 'float', 'double'];
+
+    function isNumeric(t) { return NUMERIC.indexOf(t) !== -1; }
+
+    function canCoerce(fromType, toType) {
+        if (fromType === toType) return 'exact';
+        if (isNumeric(fromType) && isNumeric(toType)) {
+            if (TYPE_RANK[fromType] < TYPE_RANK[toType]) return 'widening';
+            if (TYPE_RANK[fromType] > TYPE_RANK[toType]) return 'narrowing';
+        }
+        return 'incompatible';
+    }
+
+    function widerType(a, b) {
+        if (a === b) return a;
+        if (isNumeric(a) && isNumeric(b)) {
+            return TYPE_RANK[a] >= TYPE_RANK[b] ? a : b;
+        }
+        return null;
+    }
+
+    /* ============================================================
+       TOKENIZER — splits an expression into meaningful tokens
+       ============================================================ */
+    function tokenizeExpr(expr) {
+        var tokens = [];
+        var i = 0;
+        var s = expr.trim();
+        while (i < s.length) {
+            var ch = s[i];
+            // skip whitespace
+            if (ch === ' ' || ch === '\t') { i++; continue; }
+            // string literal
+            if (ch === '"') {
+                var j = i + 1;
+                while (j < s.length && s[j] !== '"') j++;
+                tokens.push({ type: 'string', value: s.substring(i, j + 1) });
+                i = j + 1;
+                continue;
+            }
+            // number
+            if ((ch >= '0' && ch <= '9') || (ch === '.' && i + 1 < s.length && s[i+1] >= '0' && s[i+1] <= '9')) {
+                var num = '';
+                while (i < s.length && ((s[i] >= '0' && s[i] <= '9') || s[i] === '.')) {
+                    num += s[i]; i++;
+                }
+                tokens.push({ type: 'number', value: num });
+                continue;
+            }
+            // identifier
+            if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || ch === '_') {
+                var id = '';
+                while (i < s.length && ((s[i] >= 'a' && s[i] <= 'z') || (s[i] >= 'A' && s[i] <= 'Z') || (s[i] >= '0' && s[i] <= '9') || s[i] === '_')) {
+                    id += s[i]; i++;
+                }
+                tokens.push({ type: 'id', value: id });
+                continue;
+            }
+            // operators and parens
+            if ('+-*/()'.indexOf(ch) !== -1) {
+                tokens.push({ type: 'op', value: ch });
+                i++;
+                continue;
+            }
+            // unknown
+            tokens.push({ type: 'unknown', value: ch });
+            i++;
+        }
+        return tokens;
+    }
+
+    /* ============================================================
+       RECURSIVE DESCENT EXPRESSION TYPE RESOLVER
+       Parses tokens using proper precedence:
+         Expr   → Term (('+' | '-') Term)*
+         Term   → Factor (('*' | '/') Factor)*
+         Factor → '(' Expr ')' | number | string | id
+       Returns the resolved type of the expression.
+       ============================================================ */
+    function resolveExprType(exprStr, symbolTable, logs, lineNum) {
+        var tokens = tokenizeExpr(exprStr);
+        var pos = { i: 0 };
+
+        function peek() { return pos.i < tokens.length ? tokens[pos.i] : null; }
+        function advance() { return tokens[pos.i++]; }
+
+        function parseExpr() {
+            var left = parseTerm();
+            if (left === null) return null;
+            while (true) {
+                var t = peek();
+                if (t && t.type === 'op' && (t.value === '+' || t.value === '-')) {
+                    var op = advance().value;
+                    var right = parseTerm();
+                    if (right === null) return null;
+                    var combined = widerType(left, right);
+                    if (combined === null) {
+                        logs.push({ line: lineNum, type: 'error', msg: 'Type mismatch in expression: ' + left + ' ' + op + ' ' + right });
+                        return null;
+                    }
+                    if (left !== right) {
+                        var narrower = TYPE_RANK[left] < TYPE_RANK[right] ? left : right;
+                        logs.push({ line: lineNum, type: 'coerce', msg: 'Implicit coercion: ' + narrower + ' \u2192 ' + combined + ' in \u201c' + op + '\u201d operation' });
+                    }
+                    left = combined;
+                } else {
+                    break;
+                }
+            }
+            return left;
+        }
+
+        function parseTerm() {
+            var left = parseFactor();
+            if (left === null) return null;
+            while (true) {
+                var t = peek();
+                if (t && t.type === 'op' && (t.value === '*' || t.value === '/')) {
+                    var op = advance().value;
+                    var right = parseFactor();
+                    if (right === null) return null;
+                    var combined = widerType(left, right);
+                    if (combined === null) {
+                        logs.push({ line: lineNum, type: 'error', msg: 'Type mismatch in expression: ' + left + ' ' + op + ' ' + right });
+                        return null;
+                    }
+                    if (left !== right) {
+                        var narrower = TYPE_RANK[left] < TYPE_RANK[right] ? left : right;
+                        logs.push({ line: lineNum, type: 'coerce', msg: 'Implicit coercion: ' + narrower + ' \u2192 ' + combined + ' in \u201c' + op + '\u201d operation' });
+                    }
+                    left = combined;
+                } else {
+                    break;
+                }
+            }
+            return left;
+        }
+
+        function parseFactor() {
+            var t = peek();
+            if (!t) {
+                logs.push({ line: lineNum, type: 'error', msg: 'Unexpected end of expression' });
+                return null;
+            }
+
+            // parenthesized
+            if (t.type === 'op' && t.value === '(') {
+                advance(); // consume '('
+                var inner = parseExpr();
+                var closing = peek();
+                if (closing && closing.type === 'op' && closing.value === ')') {
+                    advance(); // consume ')'
+                } else {
+                    logs.push({ line: lineNum, type: 'error', msg: 'Missing closing parenthesis' });
+                }
+                return inner;
+            }
+
+            // unary minus
+            if (t.type === 'op' && t.value === '-') {
+                advance();
+                return parseFactor();
+            }
+
+            // number literal
+            if (t.type === 'number') {
+                advance();
+                if (t.value.indexOf('.') !== -1) return 'float';
+                return 'int';
+            }
+
+            // string literal
+            if (t.type === 'string') {
+                advance();
+                return 'char';
+            }
+
+            // identifier
+            if (t.type === 'id') {
+                advance();
+                if (symbolTable[t.value]) {
+                    return symbolTable[t.value].type;
+                } else {
+                    logs.push({ line: lineNum, type: 'error', msg: 'Undeclared variable \u201c' + t.value + '\u201d used in expression' });
+                    return null;
+                }
+            }
+
+            logs.push({ line: lineNum, type: 'error', msg: 'Unexpected token: ' + t.value });
+            advance();
+            return null;
+        }
+
+        var resultType = parseExpr();
+
+        // check we consumed everything
+        if (pos.i < tokens.length && resultType !== null) {
+            var leftover = tokens.slice(pos.i).map(function(tk) { return tk.value; }).join(' ');
+            logs.push({ line: lineNum, type: 'error', msg: 'Unexpected tokens after expression: ' + leftover });
+            return null;
+        }
+
+        return resultType;
+    }
+
+    /* ============================================================
+       MAIN SEMANTIC ANALYSER
+       ============================================================ */
+    function analyse() {
+        var source = document.getElementById('sourceCode').value;
+        if (!source.trim()) {
+            document.getElementById('resultOutput').innerHTML = '<p style="color:#e94560; text-align:center; margin-top:120px;">\u26a0\ufe0f Please enter some source code first!</p>';
+            return;
+        }
+
+        var lines = source.split('\n');
+        var symbolTable = {};
+        var logs = [];
+        var typeChecks = [];
+        var errorCount = 0;
+        var warningCount = 0;
+        var coercionCount = 0;
+        var stmtCount = 0;
+
+        for (var idx = 0; idx < lines.length; idx++) {
+            var lineNum = idx + 1;
+            var rawLine = lines[idx].trim();
+
+            // Skip empty lines and comments
+            if (!rawLine || rawLine.indexOf('//') === 0) continue;
+            stmtCount++;
+
+            // Remove trailing semicolons
+            var stmt = rawLine;
+            if (stmt.charAt(stmt.length - 1) === ';') stmt = stmt.substring(0, stmt.length - 1).trim();
+
+            var handled = false;
+
+            /* ------ Pattern 1: Declaration with init  e.g. int x = expr ------ */
+            var m1 = stmt.match(/^(int|float|char|double)\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)$/);
+            if (m1) {
+                handled = true;
+                var dType = m1[1];
+                var dName = m1[2];
+                var dExpr = m1[3].trim();
+
+                // Duplicate check
+                if (symbolTable[dName]) {
+                    logs.push({ line: lineNum, type: 'error', msg: 'Duplicate declaration: \u201c' + dName + '\u201d was already declared at line ' + symbolTable[dName].line });
+                    typeChecks.push({ line: lineNum, stmt: rawLine, check: 'Duplicate \u201c' + dName + '\u201d', result: '\u274c Error' });
+                    errorCount++;
+                    continue;
+                }
+
+                // Resolve RHS type
+                var rhsType = resolveExprType(dExpr, symbolTable, logs, lineNum);
+
+                // Add to symbol table
+                symbolTable[dName] = { type: dType, line: lineNum, value: dExpr, scope: 'global' };
+                logs.push({ line: lineNum, type: 'info', msg: 'Declared \u201c' + dName + '\u201d as ' + dType + ' (value: ' + dExpr + ')' });
+
+                if (rhsType !== null) {
+                    var c = canCoerce(rhsType, dType);
+                    if (c === 'exact') {
+                        logs.push({ line: lineNum, type: 'ok', msg: 'Type check passed: ' + dType + ' ' + dName + ' = ' + rhsType + ' \u2705' });
+                        typeChecks.push({ line: lineNum, stmt: rawLine, check: dType + ' = ' + rhsType, result: '\u2705 OK' });
+                    } else if (c === 'widening') {
+                        logs.push({ line: lineNum, type: 'coerce', msg: 'Implicit widening: ' + rhsType + ' \u2192 ' + dType + ' for \u201c' + dName + '\u201d' });
+                        typeChecks.push({ line: lineNum, stmt: rawLine, check: rhsType + ' \u2192 ' + dType, result: '\u2705 Coerced' });
+                        coercionCount++;
+                    } else if (c === 'narrowing') {
+                        logs.push({ line: lineNum, type: 'warning', msg: 'Narrowing conversion: ' + rhsType + ' \u2192 ' + dType + ' for \u201c' + dName + '\u201d (possible data loss)' });
+                        typeChecks.push({ line: lineNum, stmt: rawLine, check: rhsType + ' \u2192 ' + dType, result: '\u26a0\ufe0f Narrowing' });
+                        warningCount++;
+                    } else {
+                        logs.push({ line: lineNum, type: 'error', msg: 'Type mismatch: cannot assign ' + rhsType + ' to ' + dType + ' \u201c' + dName + '\u201d' });
+                        typeChecks.push({ line: lineNum, stmt: rawLine, check: rhsType + ' \u2192 ' + dType, result: '\u274c Mismatch' });
+                        errorCount++;
+                    }
+                } else {
+                    // resolveExprType already logged the error
+                    var alreadyLogged = logs.some(function(l) { return l.line === lineNum && l.type === 'error'; });
+                    typeChecks.push({ line: lineNum, stmt: rawLine, check: dType + ' = ???', result: '\u274c Error' });
+                    if (!alreadyLogged) errorCount++;
+                }
+                continue;
+            }
+
+            /* ------ Pattern 2: Declaration only  e.g. int x ------ */
+            var m2 = stmt.match(/^(int|float|char|double)\s+([a-zA-Z_][a-zA-Z0-9_]*)$/);
+            if (m2) {
+                handled = true;
+                var dType2 = m2[1];
+                var dName2 = m2[2];
+
+                if (symbolTable[dName2]) {
+                    logs.push({ line: lineNum, type: 'error', msg: 'Duplicate declaration: \u201c' + dName2 + '\u201d was already declared at line ' + symbolTable[dName2].line });
+                    typeChecks.push({ line: lineNum, stmt: rawLine, check: 'Duplicate \u201c' + dName2 + '\u201d', result: '\u274c Error' });
+                    errorCount++;
+                    continue;
+                }
+
+                symbolTable[dName2] = { type: dType2, line: lineNum, value: 'undefined', scope: 'global' };
+                logs.push({ line: lineNum, type: 'info', msg: 'Declared \u201c' + dName2 + '\u201d as ' + dType2 + ' (no initialization)' });
+                logs.push({ line: lineNum, type: 'ok', msg: 'Declaration valid \u2705' });
+                typeChecks.push({ line: lineNum, stmt: rawLine, check: 'Declare ' + dType2, result: '\u2705 OK' });
+                continue;
+            }
+
+            /* ------ Pattern 3: Assignment  e.g. x = expr ------ */
+            var m3 = stmt.match(/^([a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(.+)$/);
+            if (m3) {
+                handled = true;
+                var aName = m3[1];
+                var aExpr = m3[2].trim();
+
+                // Check if declared
+                if (!symbolTable[aName]) {
+                    logs.push({ line: lineNum, type: 'error', msg: 'Undeclared variable \u201c' + aName + '\u201d \u2014 must be declared before assignment' });
+                    typeChecks.push({ line: lineNum, stmt: rawLine, check: '\u201c' + aName + '\u201d not declared', result: '\u274c Error' });
+                    errorCount++;
+                    continue;
+                }
+
+                var lhsType = symbolTable[aName].type;
+                var rhsType2 = resolveExprType(aExpr, symbolTable, logs, lineNum);
+
+                symbolTable[aName].value = aExpr;
+
+                if (rhsType2 !== null) {
+                    var c2 = canCoerce(rhsType2, lhsType);
+                    if (c2 === 'exact') {
+                        logs.push({ line: lineNum, type: 'ok', msg: 'Assignment valid: ' + aName + ' (' + lhsType + ') = ' + rhsType2 + ' \u2705' });
+                        typeChecks.push({ line: lineNum, stmt: rawLine, check: lhsType + ' = ' + rhsType2, result: '\u2705 OK' });
+                    } else if (c2 === 'widening') {
+                        logs.push({ line: lineNum, type: 'coerce', msg: 'Implicit widening: ' + rhsType2 + ' \u2192 ' + lhsType + ' in assignment to \u201c' + aName + '\u201d' });
+                        typeChecks.push({ line: lineNum, stmt: rawLine, check: rhsType2 + ' \u2192 ' + lhsType, result: '\u2705 Coerced' });
+                        coercionCount++;
+                    } else if (c2 === 'narrowing') {
+                        logs.push({ line: lineNum, type: 'warning', msg: 'Narrowing: ' + rhsType2 + ' \u2192 ' + lhsType + ' in assignment to \u201c' + aName + '\u201d (data loss possible)' });
+                        typeChecks.push({ line: lineNum, stmt: rawLine, check: rhsType2 + ' \u2192 ' + lhsType, result: '\u26a0\ufe0f Narrowing' });
+                        warningCount++;
+                    } else {
+                        logs.push({ line: lineNum, type: 'error', msg: 'Type mismatch: cannot assign ' + rhsType2 + ' to ' + lhsType + ' \u201c' + aName + '\u201d' });
+                        typeChecks.push({ line: lineNum, stmt: rawLine, check: rhsType2 + ' \u2192 ' + lhsType, result: '\u274c Mismatch' });
+                        errorCount++;
+                    }
+                } else {
+                    var alreadyLogged2 = logs.some(function(l) { return l.line === lineNum && l.type === 'error'; });
+                    typeChecks.push({ line: lineNum, stmt: rawLine, check: '\u2014', result: '\u274c Error' });
+                    if (!alreadyLogged2) errorCount++;
+                }
+                continue;
+            }
+
+            /* ------ Unknown statement ------ */
+            if (!handled) {
+                logs.push({ line: lineNum, type: 'warning', msg: 'Unrecognized statement: \u201c' + rawLine + '\u201d' });
+                typeChecks.push({ line: lineNum, stmt: rawLine, check: '\u2014', result: '\u26a0\ufe0f Unknown' });
+                warningCount++;
+            }
+        }
+
+        // Recount coercions from logs
+        coercionCount = 0;
+        for (var li = 0; li < logs.length; li++) {
+            if (logs[li].type === 'coerce') coercionCount++;
+        }
+
+        /* ============================================================
+           RENDER RESULTS
+           ============================================================ */
+
+        // 1. Result Summary
+        var resultHtml = '';
+        if (errorCount === 0 && warningCount === 0) {
+            resultHtml += '<div style="margin-bottom:15px;"><span class="status-pass">\u2705 SEMANTIC ANALYSIS PASSED \u2014 No Errors</span></div>';
+        } else if (errorCount === 0 && warningCount > 0) {
+            resultHtml += '<div style="margin-bottom:15px;"><span class="status-warn">\u26a0\ufe0f PASSED WITH ' + warningCount + ' WARNING(S)</span></div>';
+        } else {
+            resultHtml += '<div style="margin-bottom:15px;"><span class="status-fail">\u274c SEMANTIC ANALYSIS FAILED \u2014 ' + errorCount + ' Error(s)</span></div>';
+        }
+        resultHtml += '<div style="color:#e94560;font-weight:bold;margin:15px 0 10px;">Summary:</div>';
+        resultHtml += '<div style="color:#ccc;padding:3px 0;">\ud83d\udccb Statements Analysed: <strong style="color:#fff;">' + stmtCount + '</strong></div>';
+        resultHtml += '<div style="color:#ccc;padding:3px 0;">\ud83d\udce6 Variables Declared: <strong style="color:#fff;">' + Object.keys(symbolTable).length + '</strong></div>';
+        var okCount = 0;
+        for (var oi = 0; oi < logs.length; oi++) { if (logs[oi].type === 'ok') okCount++; }
+        resultHtml += '<div style="color:#2ecc71;padding:3px 0;">\u2705 Checks Passed: <strong>' + okCount + '</strong></div>';
+        resultHtml += '<div style="color:#9b59b6;padding:3px 0;">\ud83d\udd04 Type Coercions: <strong>' + coercionCount + '</strong></div>';
+        resultHtml += '<div style="color:#f39c12;padding:3px 0;">\u26a0\ufe0f Warnings: <strong>' + warningCount + '</strong></div>';
+        resultHtml += '<div style="color:#e74c3c;padding:3px 0;">\u274c Errors: <strong>' + errorCount + '</strong></div>';
+
+        // List all errors
+        var errorsFound = [];
+        for (var ei = 0; ei < logs.length; ei++) { if (logs[ei].type === 'error') errorsFound.push(logs[ei]); }
+        if (errorsFound.length > 0) {
+            resultHtml += '<div style="color:#e94560;font-weight:bold;margin:20px 0 10px;">Errors Found:</div>';
+            for (var ef = 0; ef < errorsFound.length; ef++) {
+                resultHtml += '<div style="color:#e74c3c;padding:4px 0;">Line ' + errorsFound[ef].line + ': ' + esc(errorsFound[ef].msg) + '</div>';
+            }
+        }
+
+        // List all warnings
+        var warningsFound = [];
+        for (var wi = 0; wi < logs.length; wi++) { if (logs[wi].type === 'warning') warningsFound.push(logs[wi]); }
+        if (warningsFound.length > 0) {
+            resultHtml += '<div style="color:#f39c12;font-weight:bold;margin:20px 0 10px;">Warnings:</div>';
+            for (var wf = 0; wf < warningsFound.length; wf++) {
+                resultHtml += '<div style="color
